@@ -6,9 +6,9 @@ class Settings(BaseSettings):
     environment: str
     log_level: str
     rate_limit_per_minute: int
+    postgres_pool_min: int
+    postgres_pool_max: int
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = {"env_file": ".env", "case_sensitive": False}
 
 settings = Settings()
