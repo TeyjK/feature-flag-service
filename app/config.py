@@ -6,8 +6,12 @@ class Settings(BaseSettings):
     environment: str
     log_level: str
     rate_limit_per_minute: int
+
     postgres_pool_min: int
     postgres_pool_max: int
+
+    redis_pool_min: int
+    redis_pool_max: int
 
     model_config = {"env_file": ".env", "case_sensitive": False}
 
