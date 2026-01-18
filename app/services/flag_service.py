@@ -39,7 +39,7 @@ async def create_flag(flag_data: dict) -> dict:
 async def update_flag(flag_id: str, updates: dict) -> Optional[dict]:
     async with database.pool.acquire() as connection:
         update_query = """UPDATE flags 
-                        SET name = $2, description = $3, enabled = $4, rollout_percentage = $5, environment = $6, version = version + 1, updated_at = NOW()
+                        SET name = COALESCE($2, name), description = COALESCE($3, description), enabled = COALESCE($4, enabled), rollout_percentage = COALESCE($5, rollout_percentage), environment = COALESCE($6, environment), version = version + 1, updated_at = NOW()
                         WHERE flag_id = $1
                         RETURNING *"""
     
