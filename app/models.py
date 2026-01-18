@@ -17,16 +17,16 @@ class FlagCreate(BaseModel):
     flag_id: str 
     name: str 
     description: Optional[str] = None
-    enabled: bool = false
+    enabled: bool = False
     rollout_percentage: int = 0
     environment: str
 
 class FlagUpdate(BaseModel):
-    name: Optional[str]
-    description: Optional[str] 
-    enabled: Optional[bool]
-    rollout_percentage: Optional[int] 
-    environment: Optional[str]
+    name: Optional[str] = None
+    description: Optional[str] = None 
+    enabled: Optional[bool] = None
+    rollout_percentage: Optional[int] = None 
+    environment: Optional[str] = None
 
 class FlagEvaluateResponse(BaseModel):
     flag_id: str
