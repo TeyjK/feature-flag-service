@@ -15,6 +15,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+from app.api import flags
+app.include_router(flags.router)
+
 @app.get("/health")
 async def health_check():
     from app import database, cache
