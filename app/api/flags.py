@@ -44,3 +44,28 @@ async def delete_flag(flag_id: str):
         raise HTTPException(status_code = 404, detail = "Flag not found")
     
     return
+
+from app.services.evaluation import evaluate_flag_for_user
+from app.models import FlagEvaluateResponse
+from datetime import datetime
+
+@router.get("/flags/{flag_id}/evaluate")
+async def evaluate_flag(flag_id: str, user_id: str, environment: str = "prod"):
+    flag = await flag_service.get_flag(flag_id)
+    if not flag:
+        raise HTTPException(status_code = 404, detail = "Flag not found")
+    if not flag['enabled']:
+        return {
+            "flag_id": flag_id,
+            "enabled": False,
+            "user_id": user_id,
+            "evaluated_at": datetime.utcnow()
+        }
+    evaluation_bool = evaluate_flag_for_user(user_id, flag_id, flag['rollout_percentage'])
+    return {
+        "flag_id": flag_id,
+        "enabled": evaluation_bool,
+        "user_id": user_id,
+        "evaluated_at": datetime.now()
+    }
+
