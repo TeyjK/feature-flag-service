@@ -30,7 +30,7 @@ async def get_flag(flag_id: str) -> Optional[dict]:
                 await set_flag_in_cache(flag_id, result_dict)
             except Exception:
                 pass
-                
+
             return result_dict
     except Exception as e:
         logger.error("Database query error", extra={'context': {'error': str(e), 'flag_id': flag_id}})

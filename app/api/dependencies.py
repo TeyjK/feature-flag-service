@@ -15,7 +15,7 @@ async def get_api_key(x_api_key: str = Header(...)) -> dict:
     if not result:
         raise HTTPException(status_code=401, detail="Invalid API key")
 
-    rate_limit_info = await check_rate_limit(result['key_id'])
+    rate_limit_info = await check_rate_limit(result['key_id'], result['rate_limit'])
     
     async with database.pool.acquire() as connection:
         await connection.execute(
