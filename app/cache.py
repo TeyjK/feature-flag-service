@@ -1,6 +1,7 @@
 import redis.asyncio as redis
-
 from app.config import settings
+import json
+from typing import Optional
 
 redis_pool = None
 redis_client = None
@@ -23,3 +24,23 @@ async def close_redis():
 
     await redis_client.aclose()
     await redis_pool.disconnect()
+
+async def get_flag_from_cache(flag_id: str) -> Optional[dict]:
+    flag = await redis_client.get(f"flag:{flag_id}")
+    if flag:
+        return json.loads(flag)
+    return None
+
+def serialize_flag(flag_data: dict) -> str:
+    flag_copy = dict(flag_data)
+    if 'created_at' in flag_copy and flag_copy['created_at']:
+        flag_copy['created_at'] = flag_copy['created_at'].isoformat()
+    if 'updated_at' in flag_copy and flag_copy['updated_at']:
+        flag_copy['updated_at'] = flag_copy['updated_at'].isoformat()
+    return json.dumps(flag_copy)
+
+async def set_flag_in_cache(flag_id: str, flag_data: dict):
+    await redis_client.set(f"flag:{flag_id}", serialize_flag(flag_data), ex=60)
+
+async def delete_flag_from_cache(flag_id: str):
+    deleted = await redis_client.delete(f"flag:{flag_id}")

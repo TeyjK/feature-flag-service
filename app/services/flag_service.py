@@ -1,13 +1,23 @@
 from app import database
 from typing import Optional
+from app.cache import get_flag_from_cache, set_flag_in_cache, delete_flag_from_cache
 
 async def get_flag(flag_id: str) -> Optional[dict]:
+    cached_flag = await get_flag_from_cache(flag_id)
+    if cached_flag:
+        return cached_flag
+
     async with database.pool.acquire() as connection:
         result = await connection.fetchrow(
             "SELECT * FROM flags WHERE flag_id = $1",
             flag_id
         )
-        return result
+    
+    if result:
+        result_dict = dict(result)
+        await set_flag_in_cache(flag_id, result_dict)
+
+    return result
 
 async def list_flags(environment: Optional[str] = None) -> list[dict]:
     async with database.pool.acquire() as connection:
@@ -52,7 +62,9 @@ async def update_flag(flag_id: str, updates: dict) -> Optional[dict]:
             updates.get('rollout_percentage'),
             updates.get('environment')
         )
-
+    
+    if row:
+        await delete_flag_from_cache(flag_id)
     return row
     
 
@@ -60,6 +72,8 @@ async def delete_flag(flag_id: str) -> bool:
     delete_query = "DELETE FROM flags WHERE flag_id = $1"
     async with database.pool.acquire() as connection:
         deleted = await connection.execute(delete_query, flag_id)
-
+    
+    if "1" in deleted:
+        await delete_flag_from_cache(flag_id) 
     return "1" in deleted 
 
