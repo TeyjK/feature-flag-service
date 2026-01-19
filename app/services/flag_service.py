@@ -2,6 +2,9 @@ from app import database
 from typing import Optional
 from app.cache import get_flag_from_cache, set_flag_in_cache, delete_flag_from_cache
 from app.services.snapshot import get_from_snapshot, update_snapshot, delete_from_snapshot
+import logging
+
+logger = logging.getLogger("feature_flags")
 
 async def get_flag(flag_id: str) -> Optional[dict]:
     try:
@@ -10,8 +13,8 @@ async def get_flag(flag_id: str) -> Optional[dict]:
             update_snapshot(flag_id, cached_flag)
             return cached_flag
     except Exception as e:
-        print(f"Redis error: {e}")
-
+        logger.error("Redis cache error", extra={'context': {'error': str(e), 'flag_id': flag_id}})
+    
     try:
         async with database.pool.acquire() as connection:
             result = await connection.fetchrow(
@@ -30,11 +33,11 @@ async def get_flag(flag_id: str) -> Optional[dict]:
                 
             return result_dict
     except Exception as e:
-        print(f"Database error: {e}")
+        logger.error("Database query error", extra={'context': {'error': str(e), 'flag_id': flag_id}})
 
     snapshot_flag = get_from_snapshot(flag_id)
     if snapshot_flag:  
-        print(f"Returning from snapshot: {flag_id}")
+        logger.warning("Serving from snapshot (degraded mode)", extra={'context': {'flag_id': flag_id}})
         return snapshot_flag
     
     return None

@@ -2,6 +2,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.database import init_db, close_db
 from app.cache import init_redis, close_redis
+from app.middleware.logging import setup_logging
+from app.middleware.request_logging import log_requests
+
+logger = setup_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -14,7 +18,7 @@ async def lifespan(app: FastAPI):
     await close_redis()
 
 app = FastAPI(lifespan=lifespan)
-
+app.middleware("http")(log_requests)
 from app.api import flags
 app.include_router(flags.router)
 
