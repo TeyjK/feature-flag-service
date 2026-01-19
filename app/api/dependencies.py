@@ -1,0 +1,23 @@
+from fastapi import Header, HTTPException
+from app import database
+import hashlib
+
+async def get_api_key(x_api_key: str = Header(...)) -> dict:
+    key_hash = hashlib.sha256(x_api_key.encode()).hexdigest()
+    
+    async with database.pool.acquire() as connection:
+        result = await connection.fetchrow(
+            "SELECT * FROM api_keys WHERE key_hash = $1",
+            key_hash
+        )
+    
+    if not result:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    
+    async with database.pool.acquire() as connection:
+        await connection.execute(
+            "UPDATE api_keys SET last_used_at = NOW() WHERE key_id = $1",
+            result['key_id']
+        )
+    
+    return dict(result)
