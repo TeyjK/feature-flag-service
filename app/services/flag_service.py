@@ -1,23 +1,39 @@
 from app import database
 from typing import Optional
 from app.cache import get_flag_from_cache, set_flag_in_cache, delete_flag_from_cache
+from app.services.snapshot import get_from_snapshot, update_snapshot, delete_from_snapshot
 
 async def get_flag(flag_id: str) -> Optional[dict]:
-    cached_flag = await get_flag_from_cache(flag_id)
-    if cached_flag:
-        return cached_flag
+    try:
+        cached_flag = await get_flag_from_cache(flag_id)
+        if cached_flag:
+            update_snapshot(flag_id, cached_flag)
+            return cached_flag
+    except Exception as e:
+        print(f"Redis error: {e}")
 
-    async with database.pool.acquire() as connection:
-        result = await connection.fetchrow(
-            "SELECT * FROM flags WHERE flag_id = $1",
-            flag_id
-        )
+    try:
+        async with database.pool.acquire() as connection:
+            result = await connection.fetchrow(
+                "SELECT * FROM flags WHERE flag_id = $1",
+                flag_id
+            )
     
-    if result:
-        result_dict = dict(result)
-        await set_flag_in_cache(flag_id, result_dict)
+        if result:
+            result_dict = dict(result)
+            update_snapshot(flag_id, result_dict)
+            await set_flag_in_cache(flag_id, result_dict)
+            return result_dict
+    except Exception as e:
+        print(f"Database error: {e}")
 
-    return result
+    snapshot_flag = get_from_snapshot(flag_id)
+    if snapshot_flag:  
+        print(f"Returning from snapshot: {flag_id}")
+        return snapshot_flag
+    
+    return None
+
 
 async def list_flags(environment: Optional[str] = None) -> list[dict]:
     async with database.pool.acquire() as connection:
@@ -75,5 +91,6 @@ async def delete_flag(flag_id: str) -> bool:
     
     if "1" in deleted:
         await delete_flag_from_cache(flag_id) 
+        delete_from_snapshot(flag_id)
     return "1" in deleted 
 
