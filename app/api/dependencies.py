@@ -1,5 +1,6 @@
 from fastapi import Header, HTTPException
 from app import database
+from app.middleware.rate_limit import check_rate_limit
 import hashlib
 
 async def get_api_key(x_api_key: str = Header(...)) -> dict:
@@ -13,11 +14,15 @@ async def get_api_key(x_api_key: str = Header(...)) -> dict:
     
     if not result:
         raise HTTPException(status_code=401, detail="Invalid API key")
+
+    rate_limit_info = await check_rate_limit(result['key_id'])
     
     async with database.pool.acquire() as connection:
         await connection.execute(
             "UPDATE api_keys SET last_used_at = NOW() WHERE key_id = $1",
             result['key_id']
         )
-    
-    return dict(result)
+        
+    api_key_dict = dict(result)
+    api_key_dict['rate_limit_info'] = rate_limit_info  
+    return api_key_dict
