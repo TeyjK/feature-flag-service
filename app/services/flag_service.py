@@ -22,7 +22,12 @@ async def get_flag(flag_id: str) -> Optional[dict]:
         if result:
             result_dict = dict(result)
             update_snapshot(flag_id, result_dict)
-            await set_flag_in_cache(flag_id, result_dict)
+
+            try:
+                await set_flag_in_cache(flag_id, result_dict)
+            except Exception:
+                pass
+                
             return result_dict
     except Exception as e:
         print(f"Database error: {e}")
